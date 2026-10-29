@@ -1,0 +1,2535 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaDrone | Autonomous Underwater Monitoring System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg:#06152b; --panel:#0b2342; --line:#20547d;
+  --cyan:#13b9ef; --text:#eef8ff; --muted:#a9c3da;
+  --green:#24d68a; --orange:#ffad35; --red:#ff4757;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;background:radial-gradient(ellipse at top,#124c78,#071b35 55%,#041126);
+  color:var(--text);font:13px Arial,sans-serif
+}
+header {
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  flex-wrap:wrap;padding:16px 22px;
+  background:linear-gradient(100deg,#062343,#0b3b60);
+  border-bottom:1px solid #2b83b5
+}
+.brand {font-size:34px;font-weight:800}
+.brand span {color:#29c8ff}
+.subtitle {font-size:12px;color:#bfe7ff;margin-top:5px}
+header h1 {font-size:20px;margin:0 0 5px}
+.sdgs {display:flex;gap:6px}
+.sdg {padding:10px;border-radius:7px;background:#079ed0;font-weight:bold}
+.sdg:nth-child(2){background:#167b53}
+.sdg:nth-child(3){background:#0966b8}
+.layout {display:grid;grid-template-columns:160px minmax(0,1fr);gap:10px;padding:10px}
+aside {background:#071b32;border:1px solid var(--line);border-radius:10px;padding:10px}
+.nav {padding:11px 8px;border-radius:6px;cursor:pointer;color:#c2d8eb}
+.nav:hover,.nav.active {background:#12538c;color:white}
+main {min-width:0}
+.grid {display:grid;gap:10px}
+.topgrid {grid-template-columns:1.3fr 1fr 1fr}
+.panel {background:linear-gradient(145deg,#0c2747,#081c35);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}
+.panel h2 {font-size:14px;margin:0;padding:11px 12px;background:#0c2745;border-bottom:1px solid #1c4568}
+.mapwrap {height:225px;position:relative}
+#map {height:225px;width:100%;background:#123f5a}
+.mapinfo,.legend {position:absolute;z-index:500;top:9px;padding:8px;border-radius:6px;font-size:10px;line-height:1.6}
+.mapinfo {right:8px;background:#e9f7ff;color:#102d45}
+.legend {left:8px;background:#06182bee;border:1px solid #3c7b9d}
+.sensors {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:9px}
+.sensor {background:#123456;border:1px solid #244d73;border-radius:7px;padding:10px;min-width:0}
+.sensor small {display:block;color:#c3d8eb;margin-bottom:7px}
+.sensor strong {font-size:15px}
+.camera {height:225px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 30% 30%,#5ed3b155,transparent 20%),radial-gradient(ellipse at 80% 60%,#47bba955,transparent 20%),repeating-linear-gradient(165deg,transparent 0 20px,#9be9d011 22px 24px),linear-gradient(#08777a,#05354c)}
+.particle {position:absolute;border-radius:50%;background:#c9e8d8aa;box-shadow:0 0 8px #6df5d7aa}
+.focus {position:absolute;right:35%;top:38%;width:55px;height:55px;border:2px solid #ff554d}
+.camtag {position:absolute;right:10px;top:48%;background:#06182bee;padding:8px;border:1px solid #ff554d}
+.timestamp {position:absolute;bottom:8px;right:8px;background:#06182bee;padding:5px}
+.charts {grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px}
+.chartbox {height:190px;padding:8px}
+.chartbox canvas {width:100%!important;height:160px!important}
+.workflow {grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px}
+.info {background:#eff9ff;color:#0b2943;border-radius:9px;border:1px solid #42a9da;overflow:hidden}
+.info h2 {color:white;background:linear-gradient(90deg,#0d8ac4,#07527f);padding:10px;margin:0;font-size:13px}
+.info.green h2 {background:linear-gradient(90deg,#19a967,#076440)}
+.info.orange h2 {background:linear-gradient(90deg,#ed8c1e,#a8490c)}
+.info.purple h2 {background:linear-gradient(90deg,#8755d7,#4c208d)}
+.info-content {padding:12px;font-size:11px;line-height:1.5}
+.info-content h3 {font-size:12px}
+.step {display:flex;gap:9px;margin-bottom:12px}
+.num {flex:0 0 24px;height:24px;border-radius:50%;background:#145b91;color:white;display:grid;place-items:center;font-weight:bold}
+.visual {background:#d5f4ff;border:1px solid #b0d9ec;border-radius:6px;margin:7px 0;padding:12px;text-align:center;font-size:22px}
+.flowbox {padding:10px;margin-bottom:7px;border-radius:7px;background:#dff5ff;border:1px solid #b4ddec;text-align:center}
+.arrow {text-align:center;color:#167cb1;font-size:18px}
+.extra {margin-top:10px}
+.two {grid-template-columns:1fr 1fr}
+.four {grid-template-columns:repeat(4,minmax(0,1fr))}
+.tile {background:#102e4f;border:1px solid #28577a;border-radius:8px;padding:12px;color:#e8f6ff}
+.tile b {color:#73d8ff}
+.tile p {color:#c1d8e9;line-height:1.5}
+.blockflow,.dataflow {display:flex;align-items:stretch;justify-content:center;gap:8px;flex-wrap:wrap;padding:12px}
+.blockflow div,.dataflow div {flex:1;min-width:115px;text-align:center;padding:12px 8px;background:#103d60;border:1px solid #2d86ad;border-radius:8px;font-weight:bold}
+.blockflow span,.dataflow span {align-self:center;color:#36caff;font-size:22px}
+.small {font-size:10px;color:#b9d8eb;font-weight:normal}
+.optical {display:grid;grid-template-columns:1.1fr 1fr;gap:12px;padding:12px}
+.chamber {height:210px;position:relative;border:2px solid #438fb0;border-radius:10px;background:linear-gradient(#b5eaff99,#0d648b);overflow:hidden}
+.waterlabel {position:absolute;top:8px;left:8px;color:#07314b;font-weight:bold}
+.beam {position:absolute;left:0;height:3px;background:#ff3030;box-shadow:0 0 9px red;transform-origin:left}
+.beam.one {top:32%;width:100%}
+.beam.two {top:58%;width:90%;transform:rotate(-12deg)}
+.beam.three {top:80%;width:75%;transform:rotate(-24deg)}
+.photodiode {position:absolute;right:4px;background:#08263d;color:white;padding:5px;font-size:10px;border-radius:4px}
+.p1 {top:24%}.p2 {top:51%}.p3 {top:75%}
+.channel-list {display:grid;gap:7px}
+.channel-list div {background:#102e4f;border:1px solid #28577a;border-radius:7px;padding:9px}
+.channel-list b {color:#73d8ff}
+.channel-list p {margin:5px 0 0;color:#c1d8e9}
+.result {display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px}
+.result div {padding:10px;background:#102e4f;border-radius:7px}
+.result small {display:block;color:#aacbe0;margin-bottom:6px}
+.result strong {font-size:14px}
+.depthstages {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px}
+.depthstage {text-align:center;background:#103653;border:1px solid #2b6486;border-radius:8px;padding:12px}
+.balloon {font-size:38px;margin:8px}
+.note {padding:12px;margin:0 12px 12px;background:#553b1d;border:1px solid #a9752c;border-radius:7px;color:#ffe4b5;line-height:1.5}
+.tablewrap {overflow:auto;padding:10px}
+table {width:100%;border-collapse:collapse;font-size:11px}
+td,th {padding:8px;text-align:left;border-bottom:1px solid #204567}
+th {color:#9edcff}
+.btn {background:#0e79ad;border:1px solid #41bde9;color:white;border-radius:6px;padding:8px 10px;cursor:pointer;margin:3px}
+.footer {padding:14px;text-align:center;color:#8fb4d1;font-size:10px}
+@media(max-width:1200px) {
+ .topgrid {grid-template-columns:1fr 1fr}
+ .camera-panel {grid-column:1/-1}
+ .charts {grid-template-columns:1fr 1fr}
+ .workflow {grid-template-columns:1fr 1fr}
+ .four {grid-template-columns:1fr 1fr}
+}
+@media(max-width:760px) {
+ .layout {grid-template-columns:1fr}
+ aside {display:flex;overflow:auto;gap:4px}
+ .nav {white-space:nowrap}
+ .topgrid,.charts,.workflow,.two,.four {grid-template-columns:1fr}
+ .camera-panel {grid-column:auto}
+ .sensors {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .optical {grid-template-columns:1fr}
+ .depthstages {grid-template-columns:1fr}
+}
+
+/* MARINE LIFE PROTECTION */
+.safety-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.safety-card {
+  background: #102e4f;
+  border: 1px solid #28577a;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.safety-card h3 {
+  margin: 0 0 10px;
+  color: #73d8ff;
+  font-size: 13px;
+}
+
+.safety-value {
+  font-size: 19px;
+  font-weight: bold;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+.safety-description {
+  color: #c1d8e9;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.safety-status {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: bold;
+  background: #174d3b;
+  color: #80ffc0;
+}
+
+.safety-status.warning {
+  background: #65421b;
+  color: #ffdc91;
+}
+
+.safety-status.danger {
+  background: #652a35;
+  color: #ffb2bb;
+}
+
+.safety-camera {
+  min-height: 190px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    radial-gradient(ellipse at 40% 40%, #277e8a, transparent 45%),
+    linear-gradient(#07516a, #031b32);
+  border: 1px solid #2b6486;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+}
+
+.safety-camera-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.safety-note {
+  margin: 0 12px 12px;
+  padding: 11px;
+  background: #18334b;
+  border: 1px solid #34607b;
+  border-radius: 7px;
+  color: #c9e8f8;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media(max-width:760px) {
+  .safety-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">≋ Aqua<span>Drone</span></div>
+    <div class="subtitle">Moving Solar-Powered Surface Platform + Balloon-Controlled Underwater Drone</div>
+  </div>
+  <div>
+    <h1>Autonomous Underwater Monitoring System</h1>
+    <div class="subtitle">Microplastic screening • Marine monitoring • Location tracking</div>
+  </div>
+  <div class="sdgs">
+    <div class="sdg">6<br><small>Clean Water</small></div>
+    <div class="sdg">13<br><small>Climate Action</small></div>
+    <div class="sdg">14<br><small>Life Below Water</small></div>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="nav active" data-target="overview">⌂ Dashboard</div>
+  <div class="nav" data-target="mapPanel">📍 Live Map</div>
+  <div class="nav" data-target="gpsTelemetry">
+  📍 GPS Tracking
+</div>
+  <div class="nav" data-target="sensorPanel">📡 Sensor Data</div>
+  <div class="nav" data-target="platform">☀️ Surface Platform</div>
+  <div class="nav" data-target="optical">🔬 Optical Detection</div>
+  <div class="nav" data-target="dataflow">🔄 Data Flow</div>
+  <div class="nav" data-target="depthcontrol">🎈 Depth Control</div>
+  <div class="nav" data-target="charts">📊 Analytics</div>
+  <div class="nav" data-target="logs">▤ Data Logs</div>
+  <div class="nav" data-target="specs">🧰 Specifications</div>
+
+  <div class="nav" data-target="microplasticLab">
+  🧬 Microplastic Classification
+</div>
+
+  <div class="nav" data-target="reportSection">📝 Word Report</div>
+
+  <div class="nav" data-target="marineAnalytics">
+  🌊 Marine Analytics
+
+</div>
+
+<div class="nav" data-target="marineSafety">
+  🐠 Marine Life Protection
+</div>
+
+</aside>
+
+<main id="overview">
+
+<section class="grid topgrid">
+  <div class="panel" id="mapPanel">
+    <h2>📍 Live Map & Drone Tracking</h2>
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="legend">🟢 Current location<br>╌╌ Surface trajectory<br>🟡 Sample location<br>🔺 Screening alert</div>
+      <div class="mapinfo">
+        <b>AquaDrone #01</b><br>
+        Lat: <span id="latText">12.933849</span><br>
+        Lon: <span id="lonText">77.534894</span><br>
+        Depth: <span id="depthMap">3.5</span> m<br>
+        Index: <span id="riskMap">72</span>/100
+      </div>
+    </div>
+  </div>
+
+<!-- AQUADRONE GPS & LIVE TELEMETRY -->
+<section class="panel extra" id="gpsTelemetry">
+  <h2>📍 GPS Location & Live Telemetry</h2>
+
+  <div style="padding:14px">
+    <p>
+      <b>Gateway status:</b>
+      <span id="gpsConnectionStatus">Disconnected</span>
+    </p>
+
+    <p>
+      <b>GPS fix:</b>
+      <span id="gpsFixStatus">Waiting for GPS</span>
+    </p>
+
+    <p>
+      <b>Latitude:</b>
+      <span id="gpsLatitude">--</span>
+    </p>
+
+    <p>
+      <b>Longitude:</b>
+      <span id="gpsLongitude">--</span>
+    </p>
+
+    <p>
+      <b>Satellites:</b>
+      <span id="gpsSatellites">--</span>
+    </p>
+
+    <p>
+      <b>Depth:</b>
+      <span id="gpsDepth">--</span> m
+    </p>
+
+    <p>
+      <b>Screening index:</b>
+      <span id="gpsScreeningIndex">--</span>/100
+    </p>
+
+    <label for="gatewayUrl">Surface ESP32 gateway URL</label>
+    <input
+      id="gatewayUrl"
+      type="url"
+      placeholder="http://192.168.1.100/api/telemetry"
+      style="width:100%;padding:10px;margin:8px 0"
+    >
+
+    <button class="btn" id="connectGpsButton">
+      Connect live gateway
+    </button>
+
+    <button class="btn" id="disconnectGpsButton">
+      Disconnect
+    </button>
+
+    <p id="gpsLastUpdate">No live data received yet.</p>
+  </div>
+</section>
+
+  <div class="panel" id="sensorPanel">
+    <h2>📡 Live Sensor Readings</h2>
+    <div class="sensors">
+      <div class="sensor"><small>Depth</small><strong id="depth">3.5 m</strong></div>
+      <div class="sensor"><small>Temperature</small><strong id="temp">26.4 °C</strong></div>
+      <div class="sensor"><small>pH</small><strong id="ph">7.82</strong></div>
+      <div class="sensor"><small>Turbidity</small><strong id="turb">18 NTU</strong></div>
+      <div class="sensor"><small>Microplastic Index</small><strong id="risk">72 / 100</strong></div>
+      <div class="sensor"><small>Battery</small><strong id="battery">78 %</strong></div>
+    </div>
+    <div class="result">
+      <div><small>Optical channel 0°</small><strong id="s0">1540</strong></div>
+      <div><small>Optical channel 45°</small><strong id="s45">820</strong></div>
+      <div><small>Optical channel 90°</small><strong id="s90">990</strong></div>
+      <div><small>Device status</small><strong style="color:#24d68a">Demo running</strong></div>
+    </div>
+  </div>
+ 
+<div class="panel" style="margin:10px;padding-bottom:12px">
+  <h2>🤖 AI Optical Anomaly Detection</h2>
+  <div class="result">
+    <div>
+      <small>AI prediction</small>
+      <strong id="ai-prediction">Waiting...</strong>
+    </div>
+    <div>
+      <small>API status</small>
+      <strong id="ai-status">Connecting...</strong>
+    </div>
+  </div>
+  <div id="ai-probabilities" style="padding:0 12px">
+    Waiting for prediction...
+  </div>
+  <p style="padding:0 12px;color:#a9c3da;font-size:11px">
+    Optical-anomaly screening only; this does not confirm microplastics.
+  </p>
+</div>
+
+
+
+
+  <div class="panel camera-panel">
+    <h2>🎥 Underwater Camera Preview</h2>
+    <div class="camera">
+      <i class="particle" style="left:15%;top:25%;width:10px;height:10px"></i>
+      <i class="particle" style="left:25%;top:65%;width:6px;height:6px"></i>
+      <i class="particle" style="left:60%;top:22%;width:12px;height:12px"></i>
+      <i class="particle" style="left:72%;top:73%;width:8px;height:8px"></i>
+      <i class="particle" style="left:46%;top:48%;width:15px;height:11px"></i>
+      <i class="particle" style="left:88%;top:36%;width:5px;height:5px"></i>
+      <div class="focus"></div>
+      <div class="camtag">Optical candidate<br>Sample preview only</div>
+      <div class="timestamp" id="timestamp">Demo feed</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARINE LIFE PROTECTION SYSTEM -->
+<section class="panel extra" id="marineSafety">
+
+  <h2>🐠 Marine Life Protection & Smart Lighting</h2>
+
+  <p class="safety-note">
+    AquaDrone monitors nearby obstacles, checks the camera's animal-detection
+    status, and manages auxiliary illumination to reduce unnecessary light
+    exposure. The readings below are simulated demonstration values.
+  </p>
+
+  <div class="safety-grid">
+
+    <!-- PROXIMITY MONITORING -->
+    <div class="safety-card">
+      <h3>📡 Proximity Monitoring</h3>
+
+      <div class="safety-description">Nearest detected object</div>
+      <div class="safety-value" id="animalDistance">-- m</div>
+
+      <span class="safety-status" id="proximityStatus">
+        Initializing
+      </span>
+
+      <p class="safety-description">
+        Monitors estimated distance to a nearby object. When the configured
+        safety distance is crossed, the system requests reduced movement
+        or a controlled stop.
+      </p>
+    </div>
+
+    <!-- AI CAMERA -->
+    <div class="safety-card">
+      <h3>🎥 AI Camera Monitoring</h3>
+
+      <div class="safety-camera">
+        <div class="safety-camera-overlay">
+          <span id="cameraFeedStatus">DEMO FEED</span>
+          <span id="cameraAnimalStatus">Analyzing...</span>
+        </div>
+
+        <div>
+          <div style="font-size:42px">🐟</div>
+          <strong id="cameraMainStatus">Animal monitoring</strong>
+          <p class="safety-description" id="cameraDetail">
+            Simulated camera status
+          </p>
+        </div>
+      </div>
+
+      <p class="safety-description">
+        A connected camera and trained AI model could classify visible
+        animals and obstacles. This preview does not process a real camera feed.
+      </p>
+    </div>
+
+    <!-- AMBIENT LIGHT CONTROL -->
+    <div class="safety-card">
+      <h3>💡 Ambient-Light Management</h3>
+
+      <div class="safety-description">Natural ambient light</div>
+      <div class="safety-value" id="ambientValue">-- lux</div>
+
+      <div class="safety-description">Auxiliary LED</div>
+      <div class="safety-value" id="ledState">OFF</div>
+
+      <span class="safety-status" id="lightStatus">
+        Monitoring light
+      </span>
+
+      <p class="safety-description">
+        The light remains off when natural illumination is sufficient.
+        If extra illumination is required, it is permitted only when
+        no nearby animal is detected and the safety interlock allows it.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- SAFETY RESPONSE -->
+  <div class="safety-grid">
+
+    <div class="safety-card">
+      <h3>🛡️ Movement Safety</h3>
+      <div class="safety-value" id="movementState">Monitoring</div>
+      <span class="safety-status" id="movementStatus">
+        No simulated warning
+      </span>
+      <p class="safety-description">
+        Close approach or animal detection triggers a simulated stop request.
+        Real propulsion control must be implemented on the onboard controller.
+      </p>
+    </div>
+
+    <div class="safety-card">
+      <h3>🔔 Protection Event</h3>
+      <div class="safety-value" id="protectionEvent">No event</div>
+      <p class="safety-description" id="protectionDetail">
+        Waiting for monitoring data.
+      </p>
+    </div>
+
+    <div class="safety-card">
+      <h3>⚙️ Demonstration Controls</h3>
+      <p class="safety-description">
+        Test the dashboard's response using simulated animal detections.
+        These buttons do not control real hardware.
+      </p>
+
+      <button class="btn" id="simulateAnimalBtn">
+        Simulate nearby animal
+      </button>
+
+      <button class="btn" id="resetAnimalBtn">
+        Reset demonstration
+      </button>
+    </div>
+
+  </div>
+
+  <div class="safety-note">
+    <b>Safety principle:</b> Use proximity sensing and camera detection
+    together. Turn auxiliary light off when it is not needed or an animal
+    is detected. Guard all moving parts and use a fail-safe stop. Sensors
+    cannot guarantee detection of every species or prevent every collision.
+  </div>
+
+</section>
+
+<section class="grid charts" id="charts">
+  <div class="panel">
+    <h2>📈 Microplastic Screening Index</h2>
+    <div class="chartbox"><canvas id="indexChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>🌡 Water Quality Parameters</h2>
+    <div class="chartbox"><canvas id="waterChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>📊 Example Particle Distribution</h2>
+    <div class="chartbox"><canvas id="sizeChart"></canvas></div>
+  </div>
+</section>
+
+<section class="grid workflow">
+  <article class="info">
+    <h2>1. How Microplastic Is Screened</h2>
+    <div class="info-content">
+      <div class="step"><div class="num">1</div><div><b>Water intake</b><div class="visual">🌊 → ⚙️ → 🧪</div>Water is pumped into a small sample chamber.</div></div>
+      <div class="step"><div class="num">2</div><div><b>Optical detection</b><div class="visual">🔴 ✳️ 🔴</div>Three laser angles illuminate the sample. BPW34 photodiodes record light changes.</div></div>
+      <div class="step"><div class="num">3</div><div><b>Signal processing</b><p>The ESP32 compares readings and calculates a screening index from programmed rules.</p></div></div>
+      <small>Optical signals do not prove polymer type or true particle size. Validate samples using microscopy, FTIR or Raman spectroscopy.</small>
+    </div>
+  </article>
+
+  <article class="info green">
+    <h2>2. Real-Time Data Transmission</h2>
+    <div class="info-content">
+      <div class="visual">🚁 ☀️ → 📡 → ☁️</div>
+      <b>Onboard ESP32 controller</b>
+      <p>Reads sensors, adds timestamps, and stores readings in temporary memory or microSD/flash.</p>
+      <ul>
+        <li>GPS reference coordinates</li>
+        <li>Depth, temperature, pH, turbidity</li>
+        <li>Optical readings and screening index</li>
+        <li>Battery and device status</li>
+        <li>Optional sample images</li>
+      </ul>
+      <small>GPS and ordinary Wi-Fi do not work underwater. Use a surface GPS fix or suitable underwater communication.</small>
+    </div>
+  </article>
+
+  <article class="info orange">
+    <h2>3. Website Monitoring</h2>
+    <div class="info-content">
+      <div class="step"><div class="num">1</div><div><b>Open dashboard</b><br>See the platform and sample location.</div></div>
+      <div class="step"><div class="num">2</div><div><b>Review sensors</b><br>Check depth, temperature, pH and turbidity.</div></div>
+      <div class="step"><div class="num">3</div><div><b>Analyze trends</b><br>Review the screening index and charts.</div></div>
+      <div class="step"><div class="num">4</div><div><b>Export records</b><br>Download demo readings as CSV.</div></div>
+      <button class="btn" id="downloadBtn">⬇ Download CSV</button>
+    </div>
+  </article>
+
+  <article class="info purple">
+    <h2>4. Example Use Case</h2>
+    <div class="info-content">
+      <div class="flowbox">🌊 Collect sample at target depth</div><div class="arrow">↓</div>
+      <div class="flowbox">🔬 Measure optical response</div><div class="arrow">↓</div>
+      <div class="flowbox">💾 Store sensor data</div><div class="arrow">↓</div>
+      <div class="flowbox">📡 Send data when connected</div><div class="arrow">↓</div>
+      <div class="flowbox">🖥 Display readings and trends</div><div class="arrow">↓</div>
+      <div class="flowbox">🌱 Support marine surveys (SDG 14)</div>
+    </div>
+  </article>
+</section>
+
+<section class="panel extra" id="platform">
+  <h2>🚤 Moving Solar-Powered Surface Platform — No Buoy Required</h2>
+  <div class="grid four">
+    <div class="tile"><b>Autonomous movement</b><p>Surface propulsion can move the platform between planned monitoring locations.</p></div>
+    <div class="tile"><b>Solar charging</b><p>Solar panel and charge controller replenish the onboard battery when sunlight and operating conditions permit.</p></div>
+    <div class="tile"><b>GPS / GNSS</b><p>Provides surface location and timestamps for mission records.</p></div>
+    <div class="tile"><b>Communication gateway</b><p>Wi-Fi, cellular, LoRa or satellite can transmit data where available and supported.</p></div>
+  </div>
+  <h3 class="subheading">Surface Platform Block Diagram</h3>
+  <div class="blockflow">
+    <div>Solar Panel<br><small>12 V / 24 V design option</small></div><span>→</span>
+    <div>Charge Controller</div><span>→</span>
+    <div>Battery<br><small>Li-ion / LiFePO₄</small></div>
+  </div>
+  <div class="blockflow">
+    <div>GPS / GNSS</div><span>↔</span>
+    <div>Surface Controller<br><small>ESP32 / Raspberry Pi option</small></div><span>↔</span>
+    <div>Communication Gateway</div>
+  </div>
+  <div class="blockflow">
+    <div>Navigation & Motion Control</div><span>↔</span>
+    <div>Acoustic / Optical Transceiver</div><span>↔</span>
+    <div>Underwater Drone</div>
+  </div>
+  <p class="section-note">The surface platform is a mobile communications and charging station. The underwater drone must still manage its own power budget. Solar-only operation requires testing of propulsion, pumps, sensors, battery capacity, solar input and weather limits.</p>
+</section>
+
+<section class="panel extra" id="optical">
+  <h2>🔬 Optical Microplastic Screening — 3 Laser / BPW34 Channels</h2>
+  <div class="optical">
+    <div class="chamber">
+      <div class="waterlabel">Water sample chamber</div>
+      <div class="beam one"></div>
+      <div class="beam two"></div>
+      <div class="beam three"></div>
+      <div class="photodiode p1">BPW34 · 0°</div>
+      <div class="photodiode p2">BPW34 · 45°</div>
+      <div class="photodiode p3">BPW34 · 90°</div>
+      <i class="particle" style="left:35%;top:43%;width:13px;height:13px"></i>
+      <i class="particle" style="left:48%;top:61%;width:8px;height:8px"></i>
+      <i class="particle" style="left:63%;top:37%;width:10px;height:10px"></i>
+    </div>
+    <div class="channel-list">
+      <div><b>Laser 1 — 0° transmission</b><p>Measures transmitted light. Particles or suspended material may reduce or alter the signal.</p></div>
+      <div><b>Laser 2 — 45° scattering</b><p>Measures off-axis scattered light. Response can also depend on particle shape, colour and water conditions.</p></div>
+      <div><b>Laser 3 — 90° side scattering</b><p>Provides a second scattering feature for comparing samples.</p></div>
+    </div>
+  </div>
+  <h3 class="subheading">Example sensor signals</h3>
+  <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));padding:10px">
+    <div class="panel"><h2>0° Transmission</h2><div class="chartbox"><canvas id="opt0"></canvas></div></div>
+    <div class="panel"><h2>45° Scattering</h2><div class="chartbox"><canvas id="opt45"></canvas></div></div>
+    <div class="panel"><h2>90° Scattering</h2><div class="chartbox"><canvas id="opt90"></canvas></div></div>
+  </div>
+  <div class="result">
+    <div><small>Example particle count</small><strong>152 particles/mL*</strong></div>
+    <div><small>Screening index</small><strong id="opticalRisk">72 / 100</strong></div>
+    <div><small>Condition</small><strong style="color:#ff7373">High — review sample</strong></div>
+    <div><small>Next step</small><strong>Filter and lab-validate</strong></div>
+  </div>
+  <p class="section-note">*Example values only. These readings are simulated, not validated measurements. A screening index is not the same as confirmed microplastic concentration or particle size.</p>
+</section>
+
+<!-- MICROPLASTIC DETECTION AND CLASSIFICATION -->
+<section class="panel extra" id="microplasticLab">
+  <h2>🧬 Microplastic Detection & Classification Laboratory</h2>
+
+  <p class="section-note">
+    AquaDrone compares transmitted and scattered light from a water sample
+    to flag unusual particles. The following classifier is a demonstration
+    of shape-based screening, not a validated plastic-identification model.
+  </p>
+
+  <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));padding:12px">
+
+    <div class="tile">
+      <b>🔬 Stage 1 — Optical measurement</b>
+      <p>Measure the 0° transmission signal and 45°/90° scattering signals.
+      Compare them with a clean-water baseline.</p>
+    </div>
+
+    <div class="tile">
+      <b>📊 Stage 2 — Feature extraction</b>
+      <p>Calculate normalized transmission loss, scattering ratios, signal
+      variation, and—if an image is available—particle shape features.</p>
+    </div>
+
+    <div class="tile">
+      <b>🧠 Stage 3 — Classification</b>
+      <p>Flag a possible particle and estimate its visual or optical class.
+      Confirm plastic identity with laboratory analysis.</p>
+    </div>
+
+  </div>
+
+  <h3 class="subheading">Particle categories the system may screen for</h3>
+
+  <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));padding:12px">
+
+    <div class="tile">
+      <b>〰️ Fibers</b>
+      <p>Long, thin strands. Image analysis can estimate length-to-width ratio.
+      Natural fibers may look similar.</p>
+    </div>
+
+    <div class="tile">
+      <b>▪️ Fragments</b>
+      <p>Irregular, broken pieces. Shape, edge and image features can support
+      screening.</p>
+    </div>
+
+    <div class="tile">
+      <b>▱ Films</b>
+      <p>Thin, sheet-like pieces. Transparency and orientation can change
+      their optical response.</p>
+    </div>
+
+    <div class="tile">
+      <b>☁️ Foam pieces</b>
+      <p>Porous or irregular lightweight pieces. Bubbles and organic material
+      can cause similar optical signals.</p>
+    </div>
+
+    <div class="tile">
+      <b>⚪ Beads / pellets</b>
+      <p>Rounded particles. Shape is best assessed using an image or
+      microscopy, not scattering intensity alone.</p>
+    </div>
+
+    <div class="tile">
+      <b>❔ Other / uncertain</b>
+      <p>Unusual particles, mixed samples, bubbles, sediment or signals
+      outside the calibrated range. Send these for further analysis.</p>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>Important distinction:</b> These are morphology categories, not polymer
+    categories. The three-angle red-light system cannot independently prove
+    that a particle is polyethylene (PE), polypropylene (PP), PET, PVC,
+    polystyrene (PS), or another polymer.
+  </div>
+
+  <h3 class="subheading">Interactive screening demonstration</h3>
+
+  <div class="safety-grid">
+
+    <div class="safety-card">
+      <h3>Choose a demonstration sample</h3>
+
+      <label for="mpSampleType">Illustrative sample category</label>
+      <select id="mpSampleType"
+        style="display:block;width:100%;margin-top:8px;padding:10px;border-radius:6px;background:#102e4f;color:#eef8ff;border:1px solid #28577a">
+        <option value="fiber">Fiber-like particle</option>
+        <option value="fragment" selected>Irregular fragment</option>
+        <option value="film">Film-like particle</option>
+        <option value="foam">Foam-like particle</option>
+        <option value="bead">Rounded bead / pellet</option>
+        <option value="uncertain">Uncertain particle / possible interference</option>
+      </select>
+
+      <button class="btn" id="runMicroplasticDemo">
+        Run optical screening
+      </button>
+
+      <p class="safety-description">
+        Select a class to explore how an example system might present
+        a result. The values below are generated for demonstration.
+      </p>
+    </div>
+
+    <div class="safety-card">
+      <h3>Screening result</h3>
+      <div class="safety-description">Estimated morphology class</div>
+      <div class="safety-value" id="mpResultClass">Fragment-like</div>
+      <span class="safety-status warning" id="mpResultStatus">
+        Demo result — unvalidated
+      </span>
+
+      <p class="safety-description" id="mpResultExplanation">
+        Example classification only; no real sample has been analyzed.
+      </p>
+    </div>
+
+    <div class="safety-card">
+      <h3>Polymer identification</h3>
+      <div class="safety-value" id="mpPolymerResult">Not confirmed</div>
+      <p class="safety-description">
+        A polymer name should only be reported after an appropriate,
+        validated chemical-identification method is used.
+      </p>
+    </div>
+
+  </div>
+
+  <h3 class="subheading">Three-angle optical measurements</h3>
+
+  <div class="result">
+    <div>
+      <small>0° — transmitted signal</small>
+      <strong id="mpSignal0">--</strong>
+    </div>
+    <div>
+      <small>45° — scattered signal</small>
+      <strong id="mpSignal45">--</strong>
+    </div>
+    <div>
+      <small>90° — side-scattered signal</small>
+      <strong id="mpSignal90">--</strong>
+    </div>
+    <div>
+      <small>Transmission change vs baseline</small>
+      <strong id="mpTransmissionChange">--</strong>
+    </div>
+  </div>
+
+  <p class="section-note">
+    These signals are arbitrary demonstration units, not calibrated BPW34
+    readings. In the real system, subtract dark readings, normalize against
+    a clean-water baseline, and calibrate every optical channel.
+  </p>
+
+  <h3 class="subheading">How particle classification should be validated</h3>
+
+  <div class="dataflow">
+    <div>Collect water sample<br><small>Use controlled sampling and filtration</small></div>
+    <span>→</span>
+    <div>Optical screening<br><small>0° / 45° / 90° features</small></div>
+    <span>→</span>
+    <div>Image or microscopy review<br><small>Size and morphology</small></div>
+    <span>→</span>
+    <div>FTIR / Raman confirmation<br><small>Polymer identity</small></div>
+  </div>
+
+  <div class="safety-note">
+    Do not report a true particle count, size, detection confidence, or
+    polymer identity until the system has been calibrated and tested against
+    reference samples. Compare results with microscopy and FTIR/Raman data
+    before training or validating an AI classifier.
+  </div>
+</section>
+
+<section class="panel extra" id="dataflow">
+  <h2>🔄 Complete Data Flow & Storage</h2>
+  <div class="dataflow">
+    <div>Underwater Sensors<br><small>Temperature · pH · turbidity · depth · optical</small></div><span>→</span>
+    <div>Signal Conditioning<br><small>Amplification / filtering</small></div><span>→</span>
+    <div>ESP32 Controller<br><small>Read · timestamp · calibrate</small></div><span>→</span>
+    <div>Registers & RAM<br><small>Temporary buffers</small></div><span>→</span>
+    <div>microSD / Flash<br><small>Persistent records</small></div>
+  </div>
+  <div class="dataflow">
+    <div>Underwater Drone</div><span>↔</span>
+    <div>Acoustic / Optical Link</div><span>↔</span>
+    <div>Surface Platform</div><span>→</span>
+    <div>Wi-Fi / 4G / LoRa / Satellite</div><span>→</span>
+    <div>Cloud / Web Dashboard</div>
+  </div>
+  <p class="section-note">RAM and registers hold data temporarily. Flash or microSD can preserve records. Cloud storage and live transmission require a configured communications path and backend service.</p>
+</section>
+
+<section class="panel extra" id="depthcontrol">
+  <h2>🎈 Balloon-Based Depth Control</h2>
+  <div class="depthstages">
+    <div class="depthstage"><div class="balloon">🟡 ↑</div><b>Surface / Ascend</b><p>Inflate the balloon to increase buoyancy and bring the drone upward.</p></div>
+    <div class="depthstage"><div class="balloon">🟡 ↕</div><b>Controlled Depth</b><p>Adjust inflation and deflation to approach a target depth.</p></div>
+    <div class="depthstage"><div class="balloon">🟡 ↓</div><b>Descend</b><p>Release air to reduce buoyancy, if the overall vehicle buoyancy design permits it.</p></div>
+  </div>
+  <div class="note"><b>Engineering caution:</b> A balloon alone may not provide stable depth control. Validate ballast, reserve buoyancy, pressure rating, pump and valve behavior, emergency surfacing and fail-safe operation in a controlled tank before open-water testing.</div>
+</section>
+
+<section class="panel extra" id="specs">
+  <h2>🧰 Prototype Specifications & Potential Users</h2>
+  <div class="grid four">
+    <div class="tile"><b>Underwater drone</b><p>Target depth: 0–30 m (design target, not verified). Propulsion: thrusters. Depth control: buoyancy balloon concept.</p></div>
+    <div class="tile"><b>Sensor package</b><p>Temperature, pH, turbidity, pressure/depth and three optical channels using red lasers and BPW34 photodiodes.</p></div>
+    <div class="tile"><b>Storage & power</b><p>ESP32, temporary RAM/register buffers, microSD/flash logging and battery monitoring. Solar charging occurs at the surface platform.</p></div>
+    <div class="tile"><b>Potential users</b><p>Marine researchers, environmental agencies, ports, merchant vessels and maritime authorities, subject to safety validation.</p></div>
+  </div>
+  <div class="grid three" style="grid-template-columns:repeat(3,minmax(0,1fr));padding:12px">
+    <div class="tile"><b>🌊 Researchers</b><p>Repeated water-quality readings and targeted sample collection.</p></div>
+    <div class="tile"><b>🚢 Merchant vessels / ports</b><p>Explore environmental monitoring around routes and port areas.</p></div>
+    <div class="tile"><b>🛟 Authorities</b><p>Support marine surveys, pollution investigations and conservation decisions.</p></div>
+  </div>
+</section>
+
+<section class="grid two extra">
+  <div class="panel" id="logs">
+    <h2>▤ Recent Data Logs <button class="btn" id="logsDownload">Export CSV</button></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Time</th><th>Depth</th><th>Temp</th><th>pH</th><th>Turbidity</th><th>Index</th><th>Status</th></tr></thead>
+        <tbody id="logRows"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel" id="alerts">
+    <h2>⚠ Alerts & Device Status</h2>
+    <div class="tablewrap">
+      <p>🟢 <b>Controller:</b> Demo mode running</p>
+      <p>🟡 <b>Screening:</b> Elevated demo index; inspect the sample.</p>
+      <p>🔋 <b>Battery:</b> <span id="batteryStatus">78%</span> (simulated)</p>
+      <p>📍 <b>Location:</b> <span id="coords">12.933849, 77.534894</span></p>
+      <p>☀️ <b>Power:</b> Solar replenishment needs energy-budget testing.</p>
+      <button class="btn" id="centerMap">Center map</button>
+      <button class="btn" id="settingsBtn">Edit location</button>
+      <div id="locationEditor" style="display:none;margin-top:10px">
+        <input id="newLat" placeholder="Latitude" value="12.933849" style="width:35%;padding:7px">
+        <input id="newLon" placeholder="Longitude" value="77.534894" style="width:35%;padding:7px">
+        <button class="btn" id="saveLocation">Save</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">AquaDrone • Educational prototype • Readings and camera are simulated until connected to real hardware and a backend.</div>
+
+<section class="panel" id="reportSection" style="margin-top:12px">
+  <h2>📝 AquaDrone Environmental Survey Report</h2>
+  <p style="padding:12px">
+    Generate a Word report containing location, water parameters, microplastic
+    screening, potential animal impacts, precautions, and recommended actions.
+  </p>
+
+  <div style="padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+    <label>Location source
+      <select id="locationSource" style="display:block;width:100%;padding:9px">
+        <option value="Demo/manual coordinates — not live GPS">Demo/manual coordinates</option>
+        <option value="Live GPS/GNSS — verify hardware connection">Live GPS/GNSS</option>
+      </select>
+    </label>
+
+    <label>GPS accuracy (metres)
+      <input id="gpsAccuracy" type="number" min="0" step="0.1"
+        placeholder="Unknown" style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label>Surface altitude above sea level (metres)
+      <input id="altitudeInput" type="number" step="0.1"
+        placeholder="Not measured" style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label>Particle category
+      <select id="particleType" style="display:block;width:100%;padding:9px">
+        <option>Not identified</option>
+        <option>Fiber</option>
+        <option>Fragment</option>
+        <option>Film</option>
+        <option>Bead / pellet</option>
+        <option>Foam</option>
+        <option>Other / uncertain</option>
+      </select>
+    </label>
+
+    <label>Polymer type (requires validation)
+      <select id="polymerType" style="display:block;width:100%;padding:9px">
+        <option>Not identified / not validated</option>
+        <option>Polyethylene (PE)</option>
+        <option>Polypropylene (PP)</option>
+        <option>Polystyrene (PS)</option>
+        <option>Polyethylene terephthalate (PET)</option>
+        <option>Polyvinyl chloride (PVC)</option>
+        <option>Polyamide / Nylon (PA)</option>
+        <option>Other / unknown</option>
+      </select>
+    </label>
+
+    <label>Estimated particle size (µm)
+      <input id="particleSize" type="number" min="0" step="0.1"
+        placeholder="Not measured" style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label>Particle count / concentration
+      <input id="particleCount" type="text"
+        placeholder="e.g. 12 particles in 100 mL"
+        style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label>AI camera confidence (%)
+      <input id="cameraConfidence" type="number" min="0" max="100" step="0.1"
+        placeholder="Not available" style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label>Camera target / frame location
+      <input id="cameraLocation" type="text"
+        placeholder="Frame ID or target coordinates"
+        style="display:block;width:100%;padding:9px">
+    </label>
+
+    <label style="grid-column:1/-1">Camera observations / laboratory findings
+      <textarea id="cameraNotes" rows="3"
+        placeholder="Enter observations or validated laboratory findings"
+        style="display:block;width:100%;padding:9px"></textarea>
+    </label>
+  </div>
+
+  <div style="padding:12px;background:#553b1d;color:#ffe4b5;margin:0 12px 12px;border-radius:7px">
+    <b>Data integrity:</b> A report cannot claim live GPS, actual camera detection,
+    confirmed polymer identity, or measured particle size unless the relevant
+    hardware and validated analysis provide those values.
+  </div>
+
+  <div style="padding:0 12px 12px">
+    <button class="btn" id="generateReportBtn">
+      📄 Generate Word Report (.doc)
+    </button>
+    <button class="btn" id="previewReportBtn">
+      Preview report summary
+    </button>
+    <p id="reportStatus" aria-live="polite">Ready to generate report.</p>
+  </div>
+</section>
+
+<!-- AQUADRONE MARINE ANALYTICS -->
+<section class="panel extra" id="marineAnalytics">
+  <h2>🌊 AquaDrone Marine Analytics & Risk Monitoring</h2>
+
+  <p style="padding:12px;color:#b9d8eb">
+    Monitor water-quality trends, compare readings at different depths,
+    locate screening results on the map, and view an illustrative
+    short-term anomaly projection.
+  </p>
+
+  <!-- GRAPH 1: SENSOR TRENDS -->
+  <div class="panel" style="margin:12px">
+    <h2>1. Real-Time Sensor Trends</h2>
+    <div class="chartbox" style="height:260px">
+      <canvas id="marineSensorChart"></canvas>
+    </div>
+  </div>
+
+  <!-- GRAPH 2: DEPTH PROFILE -->
+  <div class="panel" style="margin:12px">
+    <h2>2. Depth vs Water Parameters</h2>
+    <p style="padding:0 12px;color:#b9d8eb;font-size:11px">
+      Each point represents a recorded sample. Reliable depth profiles
+      require measurements at multiple depths.
+    </p>
+    <div class="chartbox" style="height:260px">
+      <canvas id="marineDepthChart"></canvas>
+    </div>
+  </div>
+
+  <!-- GRAPH 3: GPS POLLUTION RISK MAP -->
+  <div class="panel" style="margin:12px">
+    <h2>3. GPS Pollution-Risk Screening Map</h2>
+    <div id="pollutionRiskMap"
+         style="height:320px;width:100%;background:#123f5a">
+    </div>
+    <div class="result">
+      <div>
+        <small>Current latitude</small>
+        <strong id="riskMapLat">--</strong>
+      </div>
+      <div>
+        <small>Current longitude</small>
+        <strong id="riskMapLon">--</strong>
+      </div>
+      <div>
+        <small>Screening index</small>
+        <strong id="riskMapScore">--</strong>
+      </div>
+      <div>
+        <small>Data source</small>
+        <strong id="riskMapSource">Demo</strong>
+      </div>
+    </div>
+    <p style="padding:0 12px;color:#b9d8eb;font-size:11px">
+      Coordinates follow the dashboard location. A colored marker shows
+      the screening index, not a confirmed microplastic concentration.
+    </p>
+  </div>
+
+  <!-- GRAPH 4: AI ANOMALY AND FORECAST -->
+  <div class="panel" style="margin:12px">
+    <h2>4. AI Anomaly & Short-Term Trend Projection</h2>
+    <div class="result">
+      <div>
+        <small>Current screening index</small>
+        <strong id="forecastCurrent">--</strong>
+      </div>
+      <div>
+        <small>Trend status</small>
+        <strong id="forecastStatus">Collecting data</strong>
+      </div>
+    </div>
+    <div class="chartbox" style="height:260px">
+      <canvas id="marineForecastChart"></canvas>
+    </div>
+    <p style="padding:0 12px;color:#ffe4b5;font-size:11px">
+      DEMONSTRATION ONLY: the dashed line is a simple trend projection,
+      not a validated AI forecast or a marine disaster warning.
+    </p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+const startCoords = [12.933849,77.534894];
+let currentCoords = [...startCoords];
+let logData = [];
+
+const map = L.map('map',{zoomControl:false}).setView(currentCoords,14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; OpenStreetMap contributors'
+}).addTo(map);
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+const marker = L.marker(currentCoords).addTo(map)
+  .bindPopup('AquaDrone #01 — demo location');
+const trajectory = L.polyline([
+  [12.9328,77.5328],[12.9345,77.5337],currentCoords
+],{color:'#21df89',dashArray:'6 7',weight:3}).addTo(map);
+L.circle(currentCoords,{
+  radius:250,color:'#ff4e5e',fillColor:'#ff4e5e',fillOpacity:.12
+}).addTo(map);
+
+const labels = Array.from({length:12},(_,i)=>{
+  const d=new Date(Date.now()-(11-i)*60000);
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+});
+let idx = Array.from({length:12},(_,i)=>20+i*4+Math.round(Math.random()*5));
+
+const common = {
+  responsive:true,maintainAspectRatio:false,animation:false,
+  plugins:{legend:{labels:{color:'#dcefff',boxWidth:9,font:{size:10}}}},
+  scales:{
+    x:{ticks:{color:'#b6cee2',maxRotation:0,font:{size:9}},grid:{color:'#1d3d5d'}},
+    y:{ticks:{color:'#b6cee2',font:{size:9}},grid:{color:'#1d3d5d'}}
+  }
+};
+
+const indexChart = new Chart(document.getElementById('indexChart'),{
+  type:'line',
+  data:{labels:[...labels],datasets:[{
+    label:'Screening index',data:[...idx],borderColor:'#ffb22e',
+    backgroundColor:'#ffb22e22',fill:true,tension:.3,pointRadius:2
+  }]},
+  options:{...common,scales:{...common.scales,y:{...common.scales.y,min:0,max:100}}}
+});
+
+const waterChart = new Chart(document.getElementById('waterChart'),{
+  type:'line',
+  data:{labels:[...labels],datasets:[
+    {label:'Temperature °C',data:labels.map(()=>25+Math.random()*2),borderColor:'#ff5260',pointRadius:1,tension:.3},
+    {label:'pH',data:labels.map(()=>7.4+Math.random()*.7),borderColor:'#b8c5d6',pointRadius:1,tension:.3},
+    {label:'Turbidity NTU',data:labels.map(()=>10+Math.random()*6),borderColor:'#11bdf2',pointRadius:1,tension:.3}
+  ]},
+  options:common
+});
+
+new Chart(document.getElementById('sizeChart'),{
+  type:'bar',
+  data:{labels:['<100','100–300','300–500','500–1000','>1000'],datasets:[
+    {label:'Fibers',data:[32,70,38,15,6],backgroundColor:'#39a7ff'},
+    {label:'Fragments',data:[16,54,31,25,12],backgroundColor:'#ff5260'},
+    {label:'Films',data:[5,33,26,15,4],backgroundColor:'#32d39a'},
+    {label:'Beads',data:[3,8,22,13,2],backgroundColor:'#ffb22e'}
+  ]},
+  options:{...common,scales:{...common.scales,y:{...common.scales.y,beginAtZero:true}}}
+});
+
+function makeOpticalChart(id,color,start,scatter=false){
+  return new Chart(document.getElementById(id),{
+    type:'line',
+    data:{
+      labels:Array.from({length:11},(_,i)=>i*2),
+      datasets:[{
+        label:'Demo signal',
+        data:Array.from({length:11},(_,i)=>start+(scatter?i*35:-i*45)+Math.random()*70),
+        borderColor:color,pointRadius:2,tension:.3
+      }]
+    },
+    options:{
+      ...common,
+      plugins:{legend:{display:false}},
+      scales:{...common.scales,x:{...common.scales.x,title:{display:true,text:'Time (s)',color:'#dcefff'}}}
+    }
+  });
+}
+makeOpticalChart('opt0','#ff5260',1600,false);
+makeOpticalChart('opt45','#21d58b',500,true);
+makeOpticalChart('opt90','#7788ff',800,true);
+
+function addLog(){
+  const now=new Date();
+  const temp=+(25.2+Math.random()*1.2).toFixed(1);
+  const ph=+(7.4+Math.random()*.6).toFixed(2);
+  const turb=Math.round(11+Math.random()*7);
+  const risk=Math.min(95,Math.max(15,Math.round(idx[idx.length-1]+Math.random()*8-2)));
+  const depth=+(2.8+Math.random()*1.8).toFixed(1);
+  const d={
+    time:now.toLocaleTimeString(),depth,temp,ph,turb,risk,
+    status:risk>=60?'Review':'Normal'
+  };
+
+  logData.unshift(d);
+  logData = logData.slice(0, 8);
+
+  updateMarineAnalytics(d);
+
+  document.getElementById('logRows').innerHTML=logData.map(x=>`
+    <tr><td>${x.time}</td><td>${x.depth} m</td><td>${x.temp} °C</td>
+    <td>${x.ph}</td><td>${x.turb} NTU</td><td>${x.risk}</td>
+    <td>${x.status}</td></tr>
+  `).join('');
+
+  document.getElementById('temp').textContent=temp+' °C';
+  document.getElementById('ph').textContent=ph;
+  document.getElementById('turb').textContent=turb+' NTU';
+  document.getElementById('risk').textContent=risk+' / 100';
+  document.getElementById('riskMap').textContent=risk;
+  document.getElementById('depth').textContent=depth+' m';
+  document.getElementById('depthMap').textContent=depth;
+  document.getElementById('timestamp').textContent='Demo feed • '+now.toLocaleTimeString();
+  document.getElementById('battery').textContent=Math.max(20,78-Math.floor((Date.now()/60000)%35))+' %';
+  document.getElementById('batteryStatus').textContent=document.getElementById('battery').textContent;
+  document.getElementById('opticalRisk').textContent=risk+' / 100';
+
+  document.getElementById('s0').textContent=Math.round(1500+Math.random()*120);
+  document.getElementById('s45').textContent=Math.round(650+Math.random()*250);
+  document.getElementById('s90').textContent=Math.round(750+Math.random()*300);
+
+  idx.push(risk);idx.shift();
+  labels.push(now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));labels.shift();
+
+  indexChart.data.labels=[...labels];
+  indexChart.data.datasets[0].data=[...idx];
+  indexChart.update();
+
+  waterChart.data.labels=[...labels];
+  waterChart.data.datasets.forEach(ds=>{
+    ds.data.push(ds.label.includes('Temperature')?temp:ds.label==='pH'?ph:turb);
+    ds.data.shift();
+  });
+  waterChart.update();
+}
+
+// ==========================================
+// AQUADRONE MARINE ANALYTICS
+// Requires existing Chart.js and Leaflet.js
+// ==========================================
+
+// Graph 1: Sensor trends
+const marineSensorChart = new Chart(
+  document.getElementById("marineSensorChart"),
+  {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Temperature (°C)",
+          data: [],
+          borderColor: "#ff5260",
+          yAxisID: "temperature",
+          tension: 0.25
+        },
+        {
+          label: "pH",
+          data: [],
+          borderColor: "#b8c5d6",
+          yAxisID: "phAxis",
+          tension: 0.25
+        },
+        {
+          label: "Turbidity (NTU)",
+          data: [],
+          borderColor: "#11bdf2",
+          yAxisID: "turbidity",
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: {
+        mode: "index",
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#dcefff" }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#b6cee2" },
+          grid: { color: "#1d3d5d" }
+        },
+        temperature: {
+          type: "linear",
+          position: "left",
+          title: {
+            display: true,
+            text: "Temperature (°C)",
+            color: "#ff808a"
+          },
+          ticks: { color: "#ff808a" },
+          grid: { color: "#1d3d5d" }
+        },
+        phAxis: {
+          type: "linear",
+          position: "right",
+          min: 0,
+          max: 14,
+          title: {
+            display: true,
+            text: "pH",
+            color: "#b8c5d6"
+          },
+          ticks: { color: "#b8c5d6" },
+          grid: { drawOnChartArea: false }
+        },
+        turbidity: {
+          type: "linear",
+          display: false,
+          min: 0
+        }
+      }
+    }
+  }
+);
+
+// Graph 2: Depth versus parameters
+const marineDepthChart = new Chart(
+  document.getElementById("marineDepthChart"),
+  {
+    type: "scatter",
+    data: {
+      datasets: [
+        {
+          label: "Temperature (°C)",
+          data: [],
+          backgroundColor: "#ff5260"
+        },
+        {
+          label: "Turbidity (NTU)",
+          data: [],
+          backgroundColor: "#11bdf2"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          labels: { color: "#dcefff" }
+        }
+      },
+      scales: {
+        x: {
+          type: "linear",
+          reverse: true,
+          title: {
+            display: true,
+            text: "Depth (m)",
+            color: "#dcefff"
+          },
+          ticks: { color: "#b6cee2" },
+          grid: { color: "#1d3d5d" }
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Measured value (°C or NTU)",
+            color: "#dcefff"
+          },
+          ticks: { color: "#b6cee2" },
+          grid: { color: "#1d3d5d" }
+        }
+      }
+    }
+  }
+);
+
+// Graph 3: GPS pollution-risk map
+const pollutionMap = L.map("pollutionRiskMap")
+  .setView(currentCoords, 14);
+
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    attribution: "&copy; OpenStreetMap contributors"
+  }
+).addTo(pollutionMap);
+
+let pollutionMarker = L.circleMarker(currentCoords, {
+  radius: 10,
+  color: "#ffb22e",
+  fillColor: "#ffb22e",
+  fillOpacity: 0.8
+}).addTo(pollutionMap);
+
+pollutionMarker.bindPopup("AquaDrone screening location");
+
+const marineSampleMarkers = [];
+
+function updatePollutionMap() {
+  const lat = Number(currentCoords[0]);
+  const lon = Number(currentCoords[1]);
+
+  const riskText = document.getElementById("risk")
+    .textContent.replace("/ 100", "").trim();
+
+  const risk = Number.parseFloat(riskText);
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    !Number.isFinite(risk)
+  ) {
+    return;
+  }
+
+  const markerColor =
+    risk >= 70 ? "#ff4757" :
+    risk >= 40 ? "#ffb22e" :
+                 "#24d68a";
+
+  pollutionMarker.setLatLng([lat, lon]);
+  pollutionMarker.setStyle({
+    color: markerColor,
+    fillColor: markerColor
+  });
+
+  pollutionMarker.setPopupContent(
+    "AquaDrone screening location<br>" +
+    "Latitude: " + lat.toFixed(6) + "<br>" +
+    "Longitude: " + lon.toFixed(6) + "<br>" +
+    "Screening index: " + risk + "/100"
+  );
+
+  document.getElementById("riskMapLat").textContent =
+    lat.toFixed(6);
+
+  document.getElementById("riskMapLon").textContent =
+    lon.toFixed(6);
+
+  document.getElementById("riskMapScore").textContent =
+    risk + " / 100";
+
+  document.getElementById("riskMapSource").textContent =
+    "Dashboard coordinates";
+
+  pollutionMap.invalidateSize();
+}
+
+// Graph 4: Anomaly and illustrative forecast
+const marineForecastChart = new Chart(
+  document.getElementById("marineForecastChart"),
+  {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Recorded screening index",
+          data: [],
+          borderColor: "#11bdf2",
+          backgroundColor: "#11bdf222",
+          pointRadius: 3,
+          tension: 0.2
+        },
+        {
+          label: "Illustrative trend projection",
+          data: [],
+          borderColor: "#ffb22e",
+          borderDash: [6, 5],
+          pointRadius: 2,
+          tension: 0.2
+        },
+        {
+          label: "Review threshold (example)",
+          data: [],
+          borderColor: "#ff5260",
+          borderDash: [3, 4],
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          labels: { color: "#dcefff" }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#b6cee2" },
+          grid: { color: "#1d3d5d" }
+        },
+        y: {
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: "Screening index (0–100)",
+            color: "#dcefff"
+          },
+          ticks: { color: "#b6cee2" },
+          grid: { color: "#1d3d5d" }
+        }
+      }
+    }
+  }
+);
+
+// Update the graphs using each new dashboard log.
+// Call this from inside the existing addLog() function.
+function updateMarineAnalytics(sample) {
+  const timeLabel = sample.time;
+
+  // Graph 1: Keep the most recent 20 readings.
+  const sensor = marineSensorChart;
+
+  sensor.data.labels.push(timeLabel);
+  sensor.data.datasets[0].data.push(sample.temp);
+  sensor.data.datasets[1].data.push(sample.ph);
+  sensor.data.datasets[2].data.push(sample.turb);
+
+  while (sensor.data.labels.length > 20) {
+    sensor.data.labels.shift();
+    sensor.data.datasets.forEach(ds => ds.data.shift());
+  }
+
+  sensor.update("none");
+
+  // Graph 2: Record actual available depth/parameter pairs.
+  // This becomes a meaningful profile only after sampling at
+  // multiple depths.
+  const depthChart = marineDepthChart;
+
+  depthChart.data.datasets[0].data.push({
+    x: sample.depth,
+    y: sample.temp
+  });
+
+  depthChart.data.datasets[1].data.push({
+    x: sample.depth,
+    y: sample.turb
+  });
+
+  while (depthChart.data.datasets[0].data.length > 30) {
+    depthChart.data.datasets.forEach(ds => ds.data.shift());
+  }
+
+  depthChart.update("none");
+
+  // Graph 3: Update the current sampling marker.
+  updatePollutionMap();
+
+  // Graph 4: Display recorded screening index and a simple projection.
+  const forecast = marineForecastChart;
+  const recorded = forecast.data.datasets[0];
+  const projection = forecast.data.datasets[1];
+  const threshold = forecast.data.datasets[2];
+
+  recorded.data.push(sample.risk);
+
+  const maxRecorded = 12;
+
+  while (recorded.data.length > maxRecorded) {
+    recorded.data.shift();
+    forecast.data.labels.shift();
+  }
+
+  // Use simple linear extrapolation from recent values.
+  // This is a visualization, not a trained AI forecast.
+  const history = recorded.data;
+  const recent = history.slice(-5);
+
+  const slope = recent.length > 1
+    ? (recent[recent.length - 1] - recent[0]) /
+      (recent.length - 1)
+    : 0;
+
+  const lastValue = history[history.length - 1] ?? 0;
+
+  forecast.data.labels = history.map((_, i) => "Reading " + (i + 1));
+
+  projection.data = history.map((value, i) =>
+    i === history.length - 1 ? value : null
+  );
+
+  projection.data[projection.data.length - 1] = lastValue;
+
+  for (let i = 1; i <= 3; i++) {
+    forecast.data.labels.push("Forecast +" + i);
+    projection.data.push(
+      Math.max(0, Math.min(100, lastValue + slope * i))
+    );
+    recorded.data.length; // Historical values remain unchanged.
+  }
+
+  threshold.data = forecast.data.labels.map(() => 60);
+
+  document.getElementById("forecastCurrent").textContent =
+    sample.risk + " / 100";
+
+  document.getElementById("forecastStatus").textContent =
+    sample.risk >= 60 ? "Review sample" : "Continue monitoring";
+
+  forecast.update("none");
+}
+
+// IMPORTANT:
+// Inside your existing addLog() function, find this line:
+//
+//   logData.unshift(d);
+//
+// Immediately AFTER it, add:
+//
+//   updateMarineAnalytics(d);
+//
+// Do not add another setInterval. Your existing addLog() timer
+// will update these four graphs every five seconds.
+
+// Initialize the map after the page has laid out.
+setTimeout(() => {
+  pollutionMap.invalidateSize();
+  updatePollutionMap();
+}, 500);
+
+// ==========================================
+// AQUADRONE MARINE LIFE PROTECTION DEMO
+// Simulated data only - no hardware control
+// ==========================================
+
+const marineDemo = {
+  animalDetected: false,
+  distance: 2.4,
+  ambientLux: 180,
+  extraLightNeeded: false,
+  safetyDistance: 1.2,
+  lightThresholdLux: 80
+};
+
+function setSafetyStatus(elementId, text, level) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  el.textContent = text;
+  el.className = 'safety-status' +
+    (level ? ' ' + level : '');
+}
+
+function updateMarineSafety() {
+  const d = marineDemo.distance;
+  const animal = marineDemo.animalDetected;
+  const light = marineDemo.ambientLux;
+
+  // Proximity display
+  document.getElementById('animalDistance').textContent =
+    d.toFixed(2) + ' m';
+
+  if (d <= marineDemo.safetyDistance) {
+    setSafetyStatus(
+      'proximityStatus',
+      'CLOSE — SAFETY RESPONSE',
+      'danger'
+    );
+  } else if (d <= 2) {
+    setSafetyStatus(
+      'proximityStatus',
+      'Object nearby',
+      'warning'
+    );
+  } else {
+    setSafetyStatus(
+      'proximityStatus',
+      'Clear in demo',
+      ''
+    );
+  }
+
+  // AI camera status (simulated classification)
+  document.getElementById('cameraAnimalStatus').textContent =
+    animal ? 'ANIMAL DETECTED' : 'NO ANIMAL IN DEMO';
+
+  document.getElementById('cameraMainStatus').textContent =
+    animal ? '🐟 Nearby animal detected' : 'Monitoring surroundings';
+
+  document.getElementById('cameraDetail').textContent =
+    animal
+      ? 'Simulated detection: movement safety requested.'
+      : 'Simulated camera classification; no animal detected.';
+
+  // Ambient light sensor (simulated lux reading)
+  document.getElementById('ambientValue').textContent =
+    Math.round(light) + ' lux';
+
+  // Request extra illumination only if natural light is low.
+  // Never enable it when an animal is detected or the
+  // proximity safety distance has been crossed.
+  const tooClose = d <= marineDemo.safetyDistance;
+  const safeToIlluminate = !animal && !tooClose;
+  const ledOn = light < marineDemo.lightThresholdLux &&
+                safeToIlluminate;
+
+  document.getElementById('ledState').textContent =
+    ledOn ? 'ON — LOW POWER REQUEST' : 'OFF';
+
+  setSafetyStatus(
+    'lightStatus',
+    ledOn ? 'Extra light requested' :
+      animal || tooClose ? 'OFF — SAFETY INTERLOCK' :
+      'OFF — NOT REQUIRED',
+    animal || tooClose ? 'warning' : ''
+  );
+
+  // Simulated movement response
+  const stopRequested = animal || tooClose;
+
+  document.getElementById('movementState').textContent =
+    stopRequested ? 'STOP REQUESTED' : 'Monitoring';
+
+  setSafetyStatus(
+    'movementStatus',
+    stopRequested
+      ? 'Check surroundings / hold position'
+      : 'No simulated warning',
+    stopRequested ? 'danger' : ''
+  );
+
+  // Event information
+  document.getElementById('protectionEvent').textContent =
+    animal
+      ? 'Animal detected'
+      : tooClose
+        ? 'Proximity warning'
+        : 'No event';
+
+  document.getElementById('protectionDetail').textContent =
+    animal
+      ? 'Auxiliary light off. Simulated stop request issued.'
+      : tooClose
+        ? 'Object inside configured safety distance. Stop requested.'
+        : ledOn
+          ? 'Low ambient light: auxiliary illumination requested.'
+          : 'No simulated protection event. Auxiliary light remains off.';
+}
+
+// Simulate changing sensor values for website demonstration
+function simulateMarineReadings() {
+  // Do not overwrite an active manual animal demonstration.
+  if (!marineDemo.animalDetected) {
+    marineDemo.distance = +(0.7 + Math.random() * 2.2).toFixed(2);
+  }
+
+  marineDemo.ambientLux = Math.round(20 + Math.random() * 220);
+
+  updateMarineSafety();
+}
+
+// Test button: simulate an animal approaching
+document.getElementById('simulateAnimalBtn').addEventListener('click', () => {
+  marineDemo.animalDetected = true;
+  marineDemo.distance = 0.65;
+
+  updateMarineSafety();
+});
+
+// Reset to a clear demo state
+document.getElementById('resetAnimalBtn').addEventListener('click', () => {
+  marineDemo.animalDetected = false;
+  marineDemo.distance = 2.4;
+  marineDemo.ambientLux = 180;
+
+  updateMarineSafety();
+});
+
+// Initial state and simulated updates
+updateMarineSafety();
+setInterval(simulateMarineReadings, 4000);
+
+// ===========================================
+// MICROPLASTIC OPTICAL SCREENING DEMONSTRATION
+// Synthetic example values; not a trained AI
+// ===========================================
+
+const mpDemoProfiles = {
+  fiber: {
+    label: 'Fiber-like',
+    explanation: 'A strand-like shape would need image or microscopy confirmation. Optical signals alone cannot prove the shape.',
+    s0: 1210, s45: 390, s90: 260
+  },
+  fragment: {
+    label: 'Fragment-like',
+    explanation: 'An irregular-particle screening hypothesis. Sediment and other debris may produce similar readings.',
+    s0: 1080, s45: 560, s90: 420
+  },
+  film: {
+    label: 'Film-like',
+    explanation: 'A thin-sheet hypothesis. Orientation, transparency and folding can strongly affect the measured signals.',
+    s0: 1390, s45: 300, s90: 190
+  },
+  foam: {
+    label: 'Foam-like',
+    explanation: 'A porous-particle hypothesis. Air bubbles can create similar optical changes and must be ruled out.',
+    s0: 990, s45: 650, s90: 510
+  },
+  bead: {
+    label: 'Rounded-particle-like',
+    explanation: 'A rounded-particle hypothesis. Image analysis or microscopy is needed to assess particle shape.',
+    s0: 1150, s45: 450, s90: 470
+  },
+  uncertain: {
+    label: 'Uncertain / interference',
+    explanation: 'The sample could contain sediment, bubbles, organic matter or mixed particles. Further analysis is required.',
+    s0: 1300, s45: 720, s90: 680
+  }
+};
+
+function runMicroplasticDemo() {
+  const select = document.getElementById('mpSampleType');
+  const profile = mpDemoProfiles[select.value];
+
+  if (!profile) return;
+
+  // Generate small variations so this looks like a live demonstration.
+  const s0 = Math.round(profile.s0 + (Math.random() - 0.5) * 50);
+  const s45 = Math.round(profile.s45 + (Math.random() - 0.5) * 35);
+  const s90 = Math.round(profile.s90 + (Math.random() - 0.5) * 35);
+
+  // Illustrative clean-water reference, not a calibrated baseline.
+  const cleanWaterBaseline = 1500;
+  const transmissionChange = Math.max(
+    0,
+    (1 - s0 / cleanWaterBaseline) * 100
+  );
+
+  document.getElementById('mpResultClass').textContent =
+    profile.label;
+
+  document.getElementById('mpResultExplanation').textContent =
+    profile.explanation;
+
+  document.getElementById('mpPolymerResult').textContent =
+    'Not confirmed';
+
+  document.getElementById('mpSignal0').textContent = s0;
+  document.getElementById('mpSignal45').textContent = s45;
+  document.getElementById('mpSignal90').textContent = s90;
+
+  document.getElementById('mpTransmissionChange').textContent =
+    transmissionChange.toFixed(1) + '%';
+
+  const status = document.getElementById('mpResultStatus');
+  status.textContent = 'Illustrative profile — not validated';
+  status.className = 'safety-status warning';
+}
+
+// Connect the demonstration button.
+document.getElementById('runMicroplasticDemo')
+  .addEventListener('click', runMicroplasticDemo);
+
+// Show an initial example when the page loads.
+runMicroplasticDemo();
+
+function exportCSV(){
+  const rows=[
+    ['Time','Depth_m','Temperature_C','pH','Turbidity_NTU','Screening_Index','Status'],
+    ...logData.map(x=>[x.time,x.depth,x.temp,x.ph,x.turb,x.risk,x.status])
+  ];
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a');
+  a.href=url;a.download='aquadrone-demo-logs.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('downloadBtn').onclick=exportCSV;
+document.getElementById('logsDownload').onclick=exportCSV;
+
+document.getElementById('centerMap').onclick=()=>map.setView(currentCoords,15);
+document.getElementById('settingsBtn').onclick=()=>{
+  const e=document.getElementById('locationEditor');
+  e.style.display=e.style.display==='none'?'block':'none';
+};
+document.getElementById('saveLocation').onclick=()=>{
+  const lat=Number(document.getElementById('newLat').value);
+  const lon=Number(document.getElementById('newLon').value);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180){
+    alert('Enter a valid latitude and longitude.');return;
+  }
+  currentCoords=[lat,lon];
+  marker.setLatLng(currentCoords);
+  map.setView(currentCoords,14);
+  document.getElementById('latText').textContent=lat.toFixed(6);
+  document.getElementById('lonText').textContent=lon.toFixed(6);
+  document.getElementById('coords').textContent=lat.toFixed(6)+', '+lon.toFixed(6);
+  trajectory.setLatLngs([[lat-.001,lon-.001],[lat+.0007,lon-.0005],currentCoords]);
+};
+
+document.querySelectorAll('.nav').forEach(n=>{
+  n.onclick=()=>{
+    document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));
+    n.classList.add('active');
+    document.getElementById(n.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+});
+
+for(let i=0;i<5;i++)addLog();
+setInterval(addLog,5000);
+
+
+
+async function updateAquaDroneAI() {
+  const predictionEl = document.getElementById("ai-prediction");
+  const statusEl = document.getElementById("ai-status");
+  const probabilitiesEl = document.getElementById("ai-probabilities");
+
+  statusEl.textContent = "Analyzing...";
+
+  // Read the current simulated dashboard values.
+  const readings = {
+    laser_0: Number(document.getElementById("s0").textContent),
+    laser_45: Number(document.getElementById("s45").textContent),
+    laser_90: Number(document.getElementById("s90").textContent),
+    turbidity_ntu: Number.parseFloat(
+      document.getElementById("turb").textContent
+    ),
+    temperature_c: Number.parseFloat(
+      document.getElementById("temp").textContent
+    ),
+    ph: Number.parseFloat(document.getElementById("ph").textContent)
+  };
+
+  try {
+    const response = await fetch("https://YOUR-RENDER-SERVICE.onrender.com/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ readings })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Prediction failed");
+    }
+
+    predictionEl.textContent = result.prediction.toUpperCase();
+    statusEl.textContent = "Online";
+
+    probabilitiesEl.replaceChildren();
+
+    for (const [label, probability] of Object.entries(result.probabilities)) {
+      const line = document.createElement("p");
+      line.style.margin = "7px 0";
+      line.textContent =
+        label.toUpperCase() + ": " + (probability * 100).toFixed(1) + "%";
+      probabilitiesEl.appendChild(line);
+    }
+  } catch (error) {
+    statusEl.textContent = "Connection error";
+    predictionEl.textContent = "--";
+    probabilitiesEl.textContent =
+      "Cannot reach Python API. Check that api.py is running.";
+    console.error("AquaDrone AI:", error);
+  }
+}
+
+// Request one prediction after the dashboard has initialized.
+setTimeout(updateAquaDroneAI, 1500);
+
+// Refresh the prediction every 5 seconds.
+setInterval(updateAquaDroneAI, 5000);
+
+function reportValue(id, fallback = "Not measured") {
+  const element = document.getElementById(id);
+  const value = element?.textContent?.trim();
+  return value || fallback;
+}
+
+function reportInput(id, fallback = "Not provided") {
+  const element = document.getElementById(id);
+  const value = element?.value?.trim();
+  return value || fallback;
+}
+
+function escapeReportText(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function createReportTable(rows) {
+  return `<table>
+    ${rows.map(([label, value]) => `
+      <tr>
+        <th>${escapeReportText(label)}</th>
+        <td>${escapeReportText(value)}</td>
+      </tr>
+    `).join("")}
+  </table>`;
+}
+
+function getReportActions() {
+  const actions = [];
+
+  const ph = parseFloat(reportValue("ph", ""));
+  const turbidity = parseFloat(reportValue("turb", ""));
+  const screeningIndex = parseFloat(
+    reportValue("risk", "").replace("/ 100", "")
+  );
+
+  if (Number.isFinite(ph) && (ph < 6.5 || ph > 8.5)) {
+    actions.push(
+      "The pH is outside the example 6.5–8.5 screening range. " +
+      "Verify calibration, repeat the measurement, and compare with " +
+      "the applicable local water-quality standard."
+    );
+  }
+
+  if (Number.isFinite(turbidity) && turbidity > 5) {
+    actions.push(
+      "Turbidity exceeds the example 5 NTU review threshold. " +
+      "Repeat the test with a calibrated instrument and investigate " +
+      "possible suspended sediment or runoff. This threshold is not " +
+      "a universal water-safety limit."
+    );
+  }
+
+  if (Number.isFinite(screeningIndex) && screeningIndex >= 60) {
+    actions.push(
+      "The dashboard screening index is elevated (60 or higher). " +
+      "Collect a labelled sample and arrange confirmatory particle analysis."
+    );
+  }
+
+  actions.push(
+    "Do not identify polymer type, exact particle size, or concentration " +
+    "from the optical screening index alone."
+  );
+
+  actions.push(
+    "Use microscopy for particle counting and sizing, and FTIR, Raman, " +
+    "or another validated method for polymer identification."
+  );
+
+  actions.push(
+    "Use clean labelled containers, sample blanks, duplicate samples, " +
+    "and a recorded sample volume to reduce contamination and improve reliability."
+  );
+
+  actions.push(
+    "Avoid disturbing wildlife. Contact qualified wildlife responders " +
+    "if an animal appears injured."
+  );
+
+  actions.push(
+    "Do not declare water safe or unsafe for drinking or swimming from " +
+    "this prototype report alone. Use appropriate validated testing."
+  );
+
+  return actions;
+}
+
+function buildAquaDroneReport() {
+  const generatedAt = new Date();
+
+  // Use the dashboard's current coordinates if its map code exposes them.
+  const coords = Array.isArray(currentCoords)
+    ? currentCoords
+    : [
+        parseFloat(reportValue("latText", "")),
+        parseFloat(reportValue("lonText", ""))
+      ];
+
+  const latitude = Number.isFinite(Number(coords[0]))
+    ? Number(coords[0]).toFixed(6)
+    : "Unavailable";
+
+  const longitude = Number.isFinite(Number(coords[1]))
+    ? Number(coords[1]).toFixed(6)
+    : "Unavailable";
+
+  const locationSource = reportInput(
+    "locationSource",
+    "Demo/manual coordinates — not live GPS"
+  );
+
+  const gpsAccuracy = reportInput("gpsAccuracy", "Unknown");
+  const altitude = reportInput("altitudeInput", "Not measured");
+
+  const temperature = reportValue("temp");
+  const ph = reportValue("ph");
+  const turbidity = reportValue("turb");
+  const depth = reportValue("depth");
+  const screeningIndex = reportValue("risk");
+  const battery = reportValue("battery");
+
+  const optical0 = reportValue("s0");
+  const optical45 = reportValue("s45");
+  const optical90 = reportValue("s90");
+
+  const particleType = reportInput("particleType", "Not identified");
+  const polymerType = reportInput(
+    "polymerType",
+    "Not identified / not validated"
+  );
+  const particleSize = reportInput("particleSize", "Not measured");
+  const particleCount = reportInput("particleCount", "Not measured");
+  const cameraConfidence = reportInput(
+    "cameraConfidence",
+    "Not provided"
+  );
+  const cameraLocation = reportInput(
+    "cameraLocation",
+    "Not provided"
+  );
+  const cameraNotes = reportInput(
+    "cameraNotes",
+    "No additional observations provided."
+  );
+
+  const actions = getReportActions();
+
+  const waterAssessment = [];
+
+  const numericPH = parseFloat(ph);
+  const numericTurbidity = parseFloat(turbidity);
+
+  if (Number.isFinite(numericPH)) {
+    waterAssessment.push(
+      numericPH < 6.5 || numericPH > 8.5
+        ? "pH is outside the example 6.5–8.5 screening range; confirm with calibrated equipment and local standards."
+        : "pH is within the example 6.5–8.5 screening range; this alone does not establish water safety."
+    );
+  } else {
+    waterAssessment.push("pH reading is unavailable or unreadable.");
+  }
+
+  if (Number.isFinite(numericTurbidity)) {
+    waterAssessment.push(
+      numericTurbidity > 5
+        ? "Turbidity is above the example 5 NTU review threshold."
+        : "Turbidity is at or below the example 5 NTU review threshold."
+    );
+  } else {
+    waterAssessment.push("Turbidity reading is unavailable or unreadable.");
+  }
+
+  const table = createReportTable;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AquaDrone Environmental Survey Report</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    color: #183047;
+  }
+  h1 { color: #07527f; }
+  h2 {
+    color: #0b658f;
+    border-bottom: 1px solid #9cc8dc;
+    padding-bottom: 5px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0 20px;
+  }
+  td, th {
+    border: 1px solid #b6c9d5;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #e8f5fb; width: 34%; }
+  .warning {
+    background: #fff1d5;
+    border: 1px solid #e1b45d;
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+<h1>AquaDrone Environmental Monitoring Report</h1>
+<p><b>Generated:</b> ${escapeReportText(generatedAt.toLocaleString())}</p>
+<p><b>Report type:</b> Prototype environmental screening report</p>
+
+<div class="warning">
+  <b>Data quality warning:</b>
+  ${escapeReportText(locationSource)}.
+  The report includes values currently displayed on the dashboard.
+  If the dashboard is running in demo mode, those readings are simulated.
+  Selecting a live-GPS option does not itself connect or verify a GPS module.
+</div>
+
+<h2>1. Location and mission information</h2>
+${table([
+  ["Latitude", latitude],
+  ["Longitude", longitude],
+  ["Location source", locationSource],
+  ["GPS accuracy (m)", gpsAccuracy],
+  ["Sampling depth", depth],
+  ["Surface altitude / height above sea level (m)", altitude],
+  ["Report timestamp", generatedAt.toISOString()],
+  ["Battery", battery]
+])}
+
+<p>
+Latitude and longitude identify the reported sampling location when they
+come from a verified positioning source. Underwater GPS does not work
+directly underwater; use a surface GNSS fix or a suitable underwater
+positioning system. Depth and altitude are different measurements.
+</p>
+
+<h2>2. Water-quality and sensor parameters</h2>
+${table([
+  ["Temperature", temperature],
+  ["pH", ph],
+  ["Turbidity", turbidity],
+  ["Microplastic screening index", screeningIndex],
+  ["Optical channel 0°", optical0],
+  ["Optical channel 45°", optical45],
+  ["Optical channel 90°", optical90]
+])}
+
+<ul>
+${waterAssessment.map(item =>
+  `<li>${escapeReportText(item)}</li>`
+).join("")}
+</ul>
+
+<p>
+Water quality cannot be certified from these readings alone. Interpretation
+depends on calibrated sensors, site conditions, applicable standards, and
+the purpose of the water assessment.
+</p>
+
+<h2>3. Microplastic and camera findings</h2>
+${table([
+  ["Visual particle category", particleType],
+  ["Polymer type", polymerType],
+  ["Estimated particle size (µm)", particleSize],
+  ["Count / concentration", particleCount],
+  ["AI camera confidence (%)", cameraConfidence],
+  ["Camera target / frame location", cameraLocation],
+  ["Camera observations", cameraNotes]
+])}
+
+<p>
+Optical transmission and scattering can respond to suspended material,
+but they do not independently confirm that a particle is plastic, identify
+its polymer, or measure its exact size or concentration. A camera's view
+of an object also does not establish its chemical composition.
+</p>
+
+<p>
+For stronger evidence, use microscopy for particle counting and sizing,
+and FTIR, Raman, or another validated analytical method for polymer
+identification. Record sample volume, collection method, calibration,
+replicates, and blank samples.
+</p>
+
+<h2>4. Potential effects on aquatic animals</h2>
+<ul>
+  <li>Ingested plastic particles may interfere with feeding or digestion; effects depend on particle size, shape, dose, and species.</li>
+  <li>Fibres and fragments may cause physical irritation or injury in some circumstances.</li>
+  <li>Plastic-associated chemicals or pollutants may contribute to exposure, depending on the material and environmental conditions.</li>
+  <li>Larger plastic debris and fishing gear can entangle animals and cause injury.</li>
+</ul>
+
+<p>
+These are potential hazards, not proof that animals at this sampling location
+have been harmed. Actual effects require evidence about the material,
+exposure, species, and environmental conditions.
+</p>
+
+<h2>5. Precautions</h2>
+<ul>
+  <li>Verify sensor calibration and repeat questionable readings.</li>
+  <li>Use clean labelled containers, field blanks, and replicate samples.</li>
+  <li>Record sample volume, depth, date/time, and sampling method.</li>
+  <li>Do not report polymer identity or particle size as confirmed without a validated method.</li>
+  <li>Do not handle or disturb wildlife; contact qualified responders if an animal is injured.</li>
+  <li>Handle collected debris, lasers, batteries, and underwater equipment safely.</li>
+  <li>Do not declare water safe or unsafe based only on this prototype screening report.</li>
+</ul>
+
+<h2>6. Recommended actions</h2>
+<ol>
+${actions.map(action =>
+  `<li>${escapeReportText(action)}</li>`
+).join("")}
+</ol>
+
+<h2>7. Data quality and limitations</h2>
+<ul>
+  <li>Sensor values are real only if supplied by connected, calibrated hardware.</li>
+  <li>Coordinates are real-time GPS only if a verified live GPS/GNSS feed supplies them.</li>
+  <li>Camera classification and target localization require a real camera feed, a validated model, and location/time registration.</li>
+  <li>Particle concentration requires a defined sampling volume and validated counting method.</li>
+  <li>Polymer identity generally requires laboratory confirmation.</li>
+</ul>
+
+<p><i>
+AquaDrone prototype report. This document is a monitoring worksheet,
+not a certified laboratory result or regulatory assessment.
+</i></p>
+</body>
+</html>`;
+}
+
+function downloadAquaDroneWordReport() {
+  const reportHTML = buildAquaDroneReport();
+
+  const blob = new Blob(
+    ["\ufeff", reportHTML],
+    { type: "application/msword;charset=utf-8" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download =
+    "AquaDrone_Environmental_Report_" +
+    new Date().toISOString().slice(0, 10) +
+    ".doc";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+  document.getElementById("reportStatus").textContent =
+    "Report generated. Review the data quality notes before sharing.";
+}
+
+document
+  .getElementById("generateReportBtn")
+  .addEventListener("click", downloadAquaDroneWordReport);
+
+document
+  .getElementById("previewReportBtn")
+  .addEventListener("click", () => {
+    document.getElementById("reportStatus").textContent =
+      "Current readings: Location " +
+      reportValue("latText") + ", " + reportValue("lonText") +
+      "; depth " + reportValue("depth") +
+      "; temperature " + reportValue("temp") +
+      "; pH " + reportValue("ph") +
+      "; turbidity " + reportValue("turb") +
+      "; screening index " + reportValue("risk") +
+      ". Review the report for precautions and recommended actions.";
+  });
+
+  // ===== AQUADRONE LIVE GPS TELEMETRY =====
+
+let gpsPollTimer = null;
+let gpsRequestInProgress = false;
+
+function setGpsStatus(message) {
+  document.getElementById("gpsConnectionStatus").textContent = message;
+}
+
+async function fetchGpsTelemetry() {
+  const url = document.getElementById("gatewayUrl").value.trim();
+
+  if (!url || gpsRequestInProgress) return;
+
+  gpsRequestInProgress = true;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (
+      data.gps_fix !== true ||
+      !Number.isFinite(Number(data.lat)) ||
+      !Number.isFinite(Number(data.lon)) ||
+      Math.abs(Number(data.lat)) > 90 ||
+      Math.abs(Number(data.lon)) > 180
+    ) {
+      document.getElementById("gpsFixStatus").textContent =
+        "No valid GPS fix";
+      throw new Error("Waiting for valid GPS coordinates");
+    }
+
+    const lat = Number(data.lat);
+    const lon = Number(data.lon);
+    const coords = [lat, lon];
+
+    // Update GPS display
+    document.getElementById("gpsLatitude").textContent =
+      lat.toFixed(6);
+
+    document.getElementById("gpsLongitude").textContent =
+      lon.toFixed(6);
+
+    document.getElementById("gpsFixStatus").textContent =
+      "GPS fix available";
+
+    document.getElementById("gpsSatellites").textContent =
+      data.satellites ?? "--";
+
+    document.getElementById("gpsLastUpdate").textContent =
+      "Last update: " + new Date().toLocaleTimeString();
+
+    // Update existing dashboard fields, if present
+    const latText = document.getElementById("latText");
+    const lonText = document.getElementById("lonText");
+    const coordsText = document.getElementById("coords");
+
+    if (latText) latText.textContent = lat.toFixed(6);
+    if (lonText) lonText.textContent = lon.toFixed(6);
+    if (coordsText) {
+      coordsText.textContent =
+        lat.toFixed(6) + ", " + lon.toFixed(6);
+    }
+
+    if (Number.isFinite(Number(data.depth_m))) {
+      document.getElementById("gpsDepth").textContent =
+        Number(data.depth_m).toFixed(2);
+
+      const depth = document.getElementById("depth");
+      const depthMap = document.getElementById("depthMap");
+
+      if (depth) depth.textContent =
+        Number(data.depth_m).toFixed(2) + " m";
+
+      if (depthMap) depthMap.textContent =
+        Number(data.depth_m).toFixed(2);
+    }
+
+    if (Number.isFinite(Number(data.screening_index))) {
+      document.getElementById("gpsScreeningIndex").textContent =
+        Number(data.screening_index);
+
+      const risk = document.getElementById("risk");
+      const riskMap = document.getElementById("riskMap");
+
+      if (risk) risk.textContent =
+        Number(data.screening_index) + " / 100";
+
+      if (riskMap) riskMap.textContent =
+        Number(data.screening_index);
+    }
+
+    // Update the existing Leaflet marker
+    currentCoords = coords;
+    marker.setLatLng(coords);
+    marker.setPopupContent(
+      "AquaDrone surface gateway<br>" +
+      "Latitude: " + lat.toFixed(6) + "<br>" +
+      "Longitude: " + lon.toFixed(6)
+    );
+
+    // Extend the existing trajectory
+    const path = trajectory.getLatLngs();
+    const last = path[path.length - 1];
+
+    if (
+      !last ||
+      last.lat !== lat ||
+      last.lng !== lon
+    ) {
+      trajectory.addLatLng(coords);
+    }
+
+    // Keep map centered on live location
+    map.panTo(coords);
+
+    setGpsStatus("Connected — live data");
+  } catch (error) {
+    setGpsStatus("Connection/error: " + error.message);
+    document.getElementById("gpsLastUpdate").textContent =
+      "No valid live update received.";
+  } finally {
+    gpsRequestInProgress = false;
+  }
+}
+
+document.getElementById("connectGpsButton").addEventListener(
+  "click",
+  () => {
+    if (gpsPollTimer) clearInterval(gpsPollTimer);
+
+    fetchGpsTelemetry();
+    gpsPollTimer = setInterval(fetchGpsTelemetry, 2000);
+  }
+);
+
+document.getElementById("disconnectGpsButton").addEventListener(
+  "click",
+  () => {
+    if (gpsPollTimer) clearInterval(gpsPollTimer);
+
+    gpsPollTimer = null;
+    setGpsStatus("Disconnected");
+  }
+);
+
+</script>
+</body>
+</html>
